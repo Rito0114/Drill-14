@@ -56,9 +56,10 @@ class BirdTests(unittest.TestCase):
             bird.update(1 / ANIMATION_FPS)
         self.assertEqual(visited, list(range(14)))
         self.assertEqual(bird.frame, 0)
-        self.assertEqual(frame_rectangle(0, 918, 506), (0, 336, 183, 170))
-        self.assertEqual(frame_rectangle(5, 918, 506), (0, 166, 183, 170))
-        self.assertEqual(frame_rectangle(13, 918, 506), (550, 0, 184, 166))
+        self.assertEqual(frame_rectangle(0, 918, 506), (0, 336, 182, 170))
+        self.assertEqual(frame_rectangle(4, 918, 506), (728, 336, 182, 170))
+        self.assertEqual(frame_rectangle(5, 918, 506), (0, 166, 182, 170))
+        self.assertEqual(frame_rectangle(13, 918, 506), (546, 0, 182, 166))
         with self.assertRaises(ValueError):
             frame_rectangle(14, 918, 506)
         for frame in range(14):

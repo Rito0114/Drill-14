@@ -14,11 +14,13 @@ from ball import Ball
 from bird import FRAME_COUNT, DRAW_WIDTH, Bird
 from boy import Boy
 from grass import Grass
+from flock import Flock
 
 WIDTH, HEIGHT = 1600, 600
 BIRD_COUNT = 10
 ASSET_DIR = Path(__file__).resolve().parent
 birds = []
+flock = None
 boy = None
 grass = None
 image = None
@@ -27,26 +29,26 @@ paused = False
 
 
 def reset_flock(seed=None):
-    global birds
-    for bird in birds:
-        game_world.remove_object(bird)
+    global birds, flock
+    if flock is not None:
+        game_world.remove_object(flock)
     rng = random.Random(seed)
     left, right = DRAW_WIDTH / 2 + 10, WIDTH - DRAW_WIDTH / 2 - 10
     # 일부 새는 높이를 공유한다. 개별 행이나 구획으로 나누지 않는다.
-    heights = [220, 220, 300, 300, 300, 380, 380, 460, 460, 460]
-    rng.shuffle(heights)
-    spacing = (right - left) / BIRD_COUNT
+    heights = [300, 380, 460, 380, 300, 220, 300, 380, 460, 380]
+    if rng.random() < 0.5:
+        heights.reverse()
+    center = WIDTH / 2 + rng.uniform(-60, 60)
     birds = [
         Bird(
-            x=left + (index + rng.uniform(0.3, 0.7)) * spacing,
-            y=heights[index], speed=rng.uniform(140, 230),
-            direction=1 if index % 2 == 0 else -1,
+            x=center + (index - 4.5) * 70,
+            y=heights[index], speed=200.0, direction=1,
             left=left, right=right, phase=rng.uniform(0, FRAME_COUNT), image=image,
         )
         for index in range(BIRD_COUNT)
     ]
-    for bird in birds:
-        game_world.add_oject(bird, 1)
+    flock = Flock(birds, WIDTH)
+    game_world.add_oject(flock, 1)
 
 
 def init():
@@ -107,8 +109,9 @@ def render():
 
 
 def finish():
-    global image, body_font, boy, grass
+    global image, body_font, boy, grass, flock
     game_world.clear()
     birds.clear()
     image = body_font = boy = grass = None
+    flock = None
     Ball.images.clear()

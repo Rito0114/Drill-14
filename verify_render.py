@@ -73,7 +73,9 @@ def verify():
         assert len({bird.x for bird in play_mode.birds}) == 10
         assert all(bird.image is play_mode.image for bird in play_mode.birds)
         assert len(game_world.world[0]) == 1
-        assert len(game_world.world[1]) == 11
+        assert len(game_world.world[1]) == 2  # 소년 + 새 10마리를 포함한 새떼
+        assert play_mode.flock in game_world.world[1]
+        state['offsets'] = [bird.x - play_mode.birds[0].x for bird in play_mode.birds]
         state['boy_start'] = play_mode.boy.x
 
     def world_snapshot():
@@ -107,6 +109,7 @@ def verify():
             push_key(SDLK_p)
         elif frame == 60:
             previous = list(play_mode.birds)
+            previous_flock = play_mode.flock
             push_key(SDLK_r)
         elif frame == 90:
             push_key(SDLK_ESCAPE)
@@ -140,12 +143,15 @@ def verify():
         elif frame == 60:
             assert len(play_mode.birds) == 10
             assert all(new is not old for new, old in zip(play_mode.birds, previous))
-            assert all(old not in game_world.world[1] for old in previous)
-            assert sum(isinstance(obj, type(play_mode.birds[0]))
-                       for obj in game_world.world[1]) == 10
+            assert previous_flock not in game_world.world[1]
+            assert sum(obj is play_mode.flock for obj in game_world.world[1]) == 1
             state['reset'] = True
 
     def present():
+        assert len(play_mode.birds) == 10
+        assert len({bird.direction for bird in play_mode.birds}) == 1
+        for bird, offset in zip(play_mode.birds, state['offsets']):
+            assert abs(bird.x - play_mode.birds[0].x - offset) < 1e-8
         for bird in play_mode.birds:
             assert 0 <= bird.frame < 14
             assert bird.x - DRAW_WIDTH / 2 >= 0
@@ -178,6 +184,7 @@ def verify():
     assert not game_framework.running and not play_mode.birds
     assert play_mode.image is None
     assert play_mode.boy is None and play_mode.grass is None
+    assert play_mode.flock is None
     assert not game_framework.stack and all(not layer for layer in game_world.world)
     assert not Ball.images
     assert all(state[key] for key in ('moved_right', 'moved_left', 'fired_left',

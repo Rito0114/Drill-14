@@ -50,6 +50,13 @@ class Bird:
     def frame(self):
         return int(self.phase) % FRAME_COUNT
 
+    def advance_animation(self, dt):
+        self.phase = (self.phase + ANIMATION_FPS * dt) % FRAME_COUNT
+        # 부동소수점 누적으로 0프레임이 13.999999…로 남지 않게 한다.
+        nearest = round(self.phase)
+        if abs(self.phase - nearest) < 1e-10:
+            self.phase = float(nearest % FRAME_COUNT)
+
     def update(self, dt=None):
         if dt is None:
             import game_framework
@@ -65,7 +72,7 @@ class Bird:
         else:
             self.x = self.right - (self.travel - span)
             self.direction = -1
-        self.phase = (self.phase + ANIMATION_FPS * dt) % FRAME_COUNT
+        self.advance_animation(dt)
 
     def draw(self, image=None):
         image = self.image if image is None else image

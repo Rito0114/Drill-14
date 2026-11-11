@@ -1,48 +1,63 @@
-"""한 장의 스프라이트를 공유하는 새 10마리의 비행 화면."""
+"""LEC16의 소년·잔디·공 플레이 화면에 새 10마리를 추가한다."""
 
 from pathlib import Path
 import random
 
 from pico2d import (
-    SDL_KEYDOWN, SDL_QUIT, SDLK_ESCAPE, SDLK_SPACE, SDLK_r,
+    SDL_KEYDOWN, SDL_QUIT, SDLK_ESCAPE, SDLK_p, SDLK_r,
     clear_canvas, draw_rectangle, get_events, load_font, load_image, update_canvas,
 )
 
 import game_framework
-from bird import ANIMATION_FPS, FRAME_COUNT, DRAW_WIDTH, Bird
+import game_world
+from ball import Ball
+from bird import FRAME_COUNT, DRAW_WIDTH, Bird
+from boy import Boy
+from grass import Grass
 
-WIDTH, HEIGHT = 1280, 800
+WIDTH, HEIGHT = 1600, 600
 BIRD_COUNT = 10
 ASSET_DIR = Path(__file__).resolve().parent
 birds = []
+boy = None
+grass = None
 image = None
-title_font = None
 body_font = None
-small_font = None
 paused = False
 
 
 def reset_flock(seed=None):
     global birds
+    for bird in birds:
+        game_world.remove_object(bird)
     rng = random.Random(seed)
-    left, right = 78 + DRAW_WIDTH / 2, WIDTH - 28 - DRAW_WIDTH / 2
+    left, right = DRAW_WIDTH / 2 + 10, WIDTH - DRAW_WIDTH / 2 - 10
+    # 일부 새는 높이를 공유한다. 개별 행이나 구획으로 나누지 않는다.
+    heights = [220, 220, 300, 300, 300, 380, 380, 460, 460, 460]
+    rng.shuffle(heights)
+    spacing = (right - left) / BIRD_COUNT
     birds = [
         Bird(
-            x=rng.uniform(left, right), y=120 + index * 56,
-            speed=rng.uniform(140, 230), direction=1 if index % 2 == 0 else -1,
-            left=left, right=right, phase=rng.uniform(0, FRAME_COUNT),
+            x=left + (index + rng.uniform(0.3, 0.7)) * spacing,
+            y=heights[index], speed=rng.uniform(140, 230),
+            direction=1 if index % 2 == 0 else -1,
+            left=left, right=right, phase=rng.uniform(0, FRAME_COUNT), image=image,
         )
         for index in range(BIRD_COUNT)
     ]
+    for bird in birds:
+        game_world.add_oject(bird, 1)
 
 
 def init():
-    global image, title_font, body_font, small_font, paused
+    global image, body_font, boy, grass, paused
+    game_world.clear()
     image = load_image(str(ASSET_DIR / 'bird_animation.png'))
-    font_path = str(ASSET_DIR / 'ENCR10B.TTF')
-    title_font = load_font(font_path, 30)
-    body_font = load_font(font_path, 17)
-    small_font = load_font(font_path, 13)
+    body_font = load_font(str(ASSET_DIR / 'ENCR10B.TTF'), 17)
+    boy = Boy()
+    grass = Grass()
+    game_world.add_oject(grass, 0)
+    game_world.add_oject(boy, 1)
     paused = False
     reset_flock()
 
@@ -52,47 +67,48 @@ def handle_events():
     for event in get_events():
         if event.type == SDL_QUIT:
             game_framework.quit()
-        elif event.type == SDL_KEYDOWN:
-            if event.key == SDLK_ESCAPE:
-                game_framework.quit()
-            elif event.key == SDLK_SPACE and not getattr(event, 'repeat', 0):
+            return
+        elif event.type == SDL_KEYDOWN and event.key == SDLK_ESCAPE:
+            game_framework.quit()
+            return
+        elif event.type == SDL_KEYDOWN and event.key == SDLK_p:
+            if not getattr(event, 'repeat', 0):
                 paused = not paused
-            elif event.key == SDLK_r and not getattr(event, 'repeat', 0):
+                boy.pause()
+        elif event.type == SDL_KEYDOWN and event.key == SDLK_r:
+            if not getattr(event, 'repeat', 0):
                 reset_flock()
+        elif not paused:
+            boy.handle_event(event)
+
+
+def pause():
+    boy.pause()
+
+
+def resume():
+    pass
 
 
 def update():
     if not paused:
-        for bird in birds:
-            bird.update(game_framework.frame_time)
+        game_world.update()
 
 
 def render():
     clear_canvas()
-    draw_rectangle(0, 0, WIDTH - 1, HEIGHT - 1, 244, 247, 251, filled=True)
-    draw_rectangle(0, 690, WIDTH - 1, HEIGHT - 1, 24, 39, 61, filled=True)
-    title_font.draw(30, 751, 'DRILL 14 / BIRDS IN FLIGHT', (255, 255, 255))
-    body_font.draw(32, 711, '10 BIRDS   /   14 FRAMES   /   12 FPS WING CYCLE', (160, 210, 232))
-    body_font.draw(1110, 748, 'PAUSED' if paused else 'FLYING', (255, 213, 112))
-
-    for index, bird in enumerate(birds):
-        y = bird.y
-        if index % 2 == 0:
-            draw_rectangle(20, y - 27, WIDTH - 21, y + 27, 234, 241, 248, filled=True)
-        small_font.draw(32, y + 4, f'{index + 1:02}', (106, 124, 145))
-        # 옅은 비행 경로를 먼저 그리고 모든 새를 그 위에 표시한다.
-        for x in range(96, WIDTH - 32, 28):
-            draw_rectangle(x, y - 1, x + 8, y, 210, 223, 235, filled=True)
-    for bird in birds:
-        bird.draw(image)
-
-    draw_rectangle(0, 0, WIDTH - 1, 62, 255, 255, 255, filled=True)
-    body_font.draw(30, 37, 'SPACE  PAUSE / RESUME     R  RESET FLOCK     ESC  EXIT', (49, 67, 90))
-    small_font.draw(30, 14, f'DELTA-TIME MOTION   |   {ANIMATION_FPS:g} SPRITE FRAMES / SECOND   |   SHARED SPRITE SHEET', (115, 131, 151))
+    game_world.render()
+    draw_rectangle(0, HEIGHT - 39, WIDTH - 1, HEIGHT - 1, 24, 39, 61, filled=True)
+    body_font.draw(16, HEIGHT - 23, 'DRILL 14 | LEC16 + 10 BIRDS | 14 FRAMES', (255, 255, 255))
+    body_font.draw(670, HEIGHT - 23, 'ARROWS MOVE | SPACE FIRE / WAKE | P PAUSE | R BIRDS | ESC EXIT', (190, 220, 240))
+    if paused:
+        body_font.draw(WIDTH - 95, HEIGHT - 65, 'PAUSED', (140, 40, 25))
     update_canvas()
 
 
 def finish():
-    global image, title_font, body_font, small_font
+    global image, body_font, boy, grass
+    game_world.clear()
     birds.clear()
-    image = title_font = body_font = small_font = None
+    image = body_font = boy = grass = None
+    Ball.images.clear()

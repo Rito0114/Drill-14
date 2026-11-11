@@ -1,9 +1,12 @@
 from pico2d import *
+from pathlib import Path
+
+ASSET_DIR = Path(__file__).resolve().parent
 
 class Grass:
     def __init__(self):
-        self.image = load_image('grass.png')
-        self.ruler_image = load_image('ruler.png')
+        self.image = load_image(str(ASSET_DIR / 'grass.png'))
+        self.ruler_image = load_image(str(ASSET_DIR / 'ruler.png'))
 
     def update(self):
         pass

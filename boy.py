@@ -1,4 +1,5 @@
 from math import pi
+from pathlib import Path
 
 from pico2d import *
 from sdl2 import (SDL_KEYDOWN, SDL_KEYUP, SDLK_LEFT, SDLK_RIGHT,
@@ -9,6 +10,8 @@ import game_world
 from ball import Ball
 
 import game_framework
+
+ASSET_DIR = Path(__file__).resolve().parent
 
 PIXEL_PER_METER = (10.0/0.3)  # 10 pixel 30 cm
 RUN_SPEED_KMPH = 7.0  # Km / Hour 가벼운 달리기 조깅 속도
@@ -24,18 +27,19 @@ RUN_FRAMES_PER_SECOND = RUN_SPEED_MPS/STRIDE_LENGTH_M * RUN_FRAMES_PER_STRIDE
 
 class Idle:
     def enter(self, boy):
-        boy.idle_started_at = get_time()
+        boy.idle_elapsed = 0.0
         boy.frame = 0
 
     def do(self, boy):
-        if get_time() - boy.idle_started_at >= 5.0:
+        boy.idle_elapsed += game_framework.frame_time
+        if boy.idle_elapsed >= 5.0:
             boy.fall_asleep()
         else:
-            boy.frame = (boy.frame + 1) % 8
+            boy.frame = (boy.frame + RUN_FRAMES_PER_SECOND * game_framework.frame_time) % 8
 
     def draw(self, boy):
         row = 300 if boy.face_dir == 1 else 200
-        boy.image.clip_draw(boy.frame * 100, row, 100, 100, boy.x, boy.y)
+        boy.image.clip_draw(int(boy.frame) * 100, row, 100, 100, boy.x, boy.y)
 
     def space(self, boy):
         boy.fire_ball()
@@ -55,7 +59,7 @@ class Sleep:
         angle = pi / 2 if boy.face_dir == 1 else -pi / 2
         flip = '' if boy.face_dir == 1 else 'h'
         boy.image.clip_composite_draw(
-            boy.frame * 100, 300, 100, 100,
+            int(boy.frame) * 100, 300, 100, 100,
             angle, flip, boy.x, boy.y - 30, 100, 100
         )
 
@@ -88,11 +92,11 @@ class Run:
 
 class Boy:
     def __init__(self):
-        self.font = load_font('ENCR10B.TTF',16)
+        self.font = load_font(str(ASSET_DIR / 'ENCR10B.TTF'), 16)
         self.x, self.y = 400, 90
         self.frame = 0
-        self.image = load_image('animation_sheet.png')
-        self.idle_started_at = get_time()
+        self.image = load_image(str(ASSET_DIR / 'animation_sheet.png'))
+        self.idle_elapsed = 0.0
         self.dir = 0
         self.face_dir = 1
         self.pressed_keys = set()
@@ -129,7 +133,7 @@ class Boy:
     def fire_ball(self):
         if self.item is None:
             return
-        ball = Ball(self.x, self.y, self.face_dir * 10, 1 if self.item == 'Ball' else 2)
+        ball = Ball(self.x, self.y, self.face_dir, 1 if self.item == 'Ball' else 2)
         game_world.add_oject(ball)
 
     def pause(self):
@@ -168,4 +172,4 @@ class Boy:
 
     def draw(self):
         self.states[self.state].draw(self)
-        self.font.draw(self.x-60,self.y +50,f'(Time:{get_time():.2f})',(255,255,0))
+        self.font.draw(self.x-48, self.y + 58, self.state, (30, 55, 75))

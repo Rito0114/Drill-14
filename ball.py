@@ -1,4 +1,7 @@
 from pico2d import get_canvas_width, load_image
+from pathlib import Path
+
+ASSET_DIR = Path(__file__).resolve().parent
 
 import game_world
 import game_framework
@@ -12,8 +15,8 @@ class Ball:
 
     def __init__(self, x, y, direction, ball_type=1):
         if ball_type not in Ball.images:
-            Ball.images[ball_type] = load_image(
-                'ball21x21.png' if ball_type == 1 else 'ball41x41.png')
+            filename = 'ball21x21.png' if ball_type == 1 else 'ball41x41.png'
+            Ball.images[ball_type] = load_image(str(ASSET_DIR / filename))
         self.image = Ball.images[ball_type]
         self.x, self.y = x, y
         self.velocity_x = direction *LAUNCH_SPEED_X

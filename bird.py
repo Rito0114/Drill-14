@@ -34,6 +34,7 @@ class Bird:
     left: float
     right: float
     phase: float = 0.0
+    image: object = None
 
     def __post_init__(self):
         if self.right <= self.left or self.speed < 0:
@@ -49,7 +50,10 @@ class Bird:
     def frame(self):
         return int(self.phase) % FRAME_COUNT
 
-    def update(self, dt):
+    def update(self, dt=None):
+        if dt is None:
+            import game_framework
+            dt = game_framework.frame_time
         if dt < 0:
             raise ValueError('경과 시간은 음수가 될 수 없습니다.')
         # 왕복 경로를 펼쳐 누적한 뒤 반으로 접는다. 초과 이동 거리를 보존한다.
@@ -63,7 +67,8 @@ class Bird:
             self.direction = -1
         self.phase = (self.phase + ANIMATION_FPS * dt) % FRAME_COUNT
 
-    def draw(self, image):
+    def draw(self, image=None):
+        image = self.image if image is None else image
         source = frame_rectangle(self.frame, image.w, image.h)
         image.clip_composite_draw(
             *source, 0, 'h' if self.direction == -1 else '',

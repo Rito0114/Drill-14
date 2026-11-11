@@ -5,7 +5,7 @@ from dataclasses import dataclass
 FRAME_COUNT = 14
 ANIMATION_FPS = 12.0
 SHEET_COLUMNS = 5
-SHEET_ROWS = 3
+SHEET_ROW_HEIGHT = 170
 DRAW_WIDTH = 92
 DRAW_HEIGHT = 84
 
@@ -17,8 +17,9 @@ def frame_rectangle(frame, image_width, image_height):
     row, column = divmod(frame, SHEET_COLUMNS)
     left = column * image_width // SHEET_COLUMNS
     right = (column + 1) * image_width // SHEET_COLUMNS
-    top = row * image_height // SHEET_ROWS
-    bottom = (row + 1) * image_height // SHEET_ROWS
+    # 둘째 행의 꼬리가 y=339까지 이어진다. 3등분하면 이웃 행이 섞인다.
+    top = row * SHEET_ROW_HEIGHT
+    bottom = min((row + 1) * SHEET_ROW_HEIGHT, image_height)
     return left, image_height - bottom, right - left, bottom - top
 
 
